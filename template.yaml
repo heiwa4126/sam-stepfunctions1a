@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  sam-stepfunctions1
+
+  Sample SAM Template for sam-stepfunctions1
+  See https://docs.aws.amazon.com/step-functions/latest/dg/tutorial-creating-lambda-state-machine.html
+
+Globals:
+  Function:
+    Timeout: 3
+    Runtime: nodejs14.x
+    Architectures:
+      - x86_64
+  Api:
+    OpenApiVersion: 3.0.3
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello-world/
+      Handler: app.handler
+      Policies:
+        - S3CrudPolicy: # 作成、読み取り、更新、および削除許可
+            BucketName: !Ref SFS3Bucket
+
+  HelloWorldFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: HelloWorldFunction
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Sub "/aws/lambda/${HelloWorldFunction}"
+
+  SFS3Bucket:
+    # このステップでは使用しないが一応
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+
+  # 以下
+  # SAMの AWS::Serverless::StateMachine ではなく
+  # CFnの AWS::StepFunctions::StateMachine を使う例
+  # 見ての通り結構きつい
+
+  HelloWorldStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString: !Sub |
+          {
+            "Comment": "A Hello World example of the Amazon States Language using an AWS Lambda function",
+            "StartAt": "HelloWorld",
+            "States": {
+              "HelloWorld": {
+                "Type": "Task",
+                "Resource": "${HelloWorldFunction.Arn}",
+                "End": true
+              }
+            }
+          }
+      RoleArn: !GetAtt IAMRole.Arn
+      StateMachineType: STANDARD
+      LoggingConfiguration:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt HelloWorldStateMachineLogGroup.Arn
+        IncludeExecutionData: true
+        Level: ERROR
+
+  HelloWorldStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    # DependsOn: HelloWorldStateMachine
+    Properties:
+      RetentionInDays: 7
+      # LogGroupName: !Sub "/aws/vendedlogs/states/${HelloWorldStateMachine}-Log"
+
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/service-role/"
+      # RoleName: "StepFunctions-sam-stepfunctions1-role-28b41346"
+      AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"states.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - !Ref IAMManagedPolicy
+        - !Ref IAMManagedPolicy2
+        - !Ref IAMManagedPolicy3
+
+  IAMManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Path: "/service-role/"
+      PolicyDocument: !Sub |
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "lambda:InvokeFunction"
+                      ],
+                      "Resource": [
+                          "${HelloWorldFunction.Arn}:*"
+                      ]
+                  },
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "lambda:InvokeFunction"
+                      ],
+                      "Resource": [
+                          "${HelloWorldFunction.Arn}"
+                      ]
+                  }
+              ]
+          }
+
+  IAMManagedPolicy2:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Path: "/service-role/"
+      PolicyDocument: |
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "logs:CreateLogDelivery",
+                          "logs:GetLogDelivery",
+                          "logs:UpdateLogDelivery",
+                          "logs:DeleteLogDelivery",
+                          "logs:ListLogDeliveries",
+                          "logs:PutResourcePolicy",
+                          "logs:DescribeResourcePolicies",
+                          "logs:DescribeLogGroups"
+                      ],
+                      "Resource": "*"
+                  }
+              ]
+          }
+
+  IAMManagedPolicy3:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Path: "/service-role/"
+      PolicyDocument: |
+          {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "xray:PutTraceSegments",
+                          "xray:PutTelemetryRecords",
+                          "xray:GetSamplingRules",
+                          "xray:GetSamplingTargets"
+                      ],
+                      "Resource": [
+                          "*"
+                      ]
+                  }
+              ]
+          }
+
+Outputs:
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn
+  SFS3Bucket:
+    Description: "S3 bucket for Step Functions example"
+    Value: !Ref SFS3Bucket
