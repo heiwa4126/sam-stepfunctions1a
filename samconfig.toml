@@ -2,9 +2,9 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "sam-stepfunctions1"
+stack_name = "sam-stepfunctions1a"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1avr0ylgvc8ng"
-s3_prefix = "sam-stepfunctions0"
+s3_prefix = "sam-stepfunctions1a"
 region = "ap-northeast-1"
 capabilities = "CAPABILITY_IAM"
 image_repositories = []

@@ -42,131 +42,59 @@ Resources:
         IgnorePublicAcls: True
         RestrictPublicBuckets: True
 
-  # 以下
-  # SAMの AWS::Serverless::StateMachine ではなく
-  # CFnの AWS::StepFunctions::StateMachine を使う例
-  # 見ての通り結構きつい
+  # SAMの AWS::Serverless::StateMachine を使う例
 
   HelloWorldStateMachine:
-    Type: AWS::StepFunctions::StateMachine
+    Type: AWS::Serverless::StateMachine
+    DependsOn: HelloWorldStateMachineLogGroup
     Properties:
-      DefinitionString: !Sub |
-          {
-            "Comment": "A Hello World example of the Amazon States Language using an AWS Lambda function",
-            "StartAt": "HelloWorld",
-            "States": {
-              "HelloWorld": {
-                "Type": "Task",
-                "Resource": "${HelloWorldFunction.Arn}",
-                "End": true
-              }
-            }
-          }
-      RoleArn: !GetAtt IAMRole.Arn
-      StateMachineType: STANDARD
-      LoggingConfiguration:
+      Definition:
+        Comment: A Hello World example of the Amazon States Language using an AWS Lambda function
+        StartAt: HelloWorld
+        States:
+          HelloWorld:
+            Type: Task
+            Resource: !GetAtt HelloWorldFunction.Arn
+            End: true
+      Type: STANDARD
+      Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
               LogGroupArn: !GetAtt HelloWorldStateMachineLogGroup.Arn
         IncludeExecutionData: true
         Level: ERROR
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HelloWorldFunction
+        - Statement:
+           - Effect: Allow
+             Action:
+               - logs:CreateLogDelivery
+               - logs:GetLogDelivery
+               - logs:UpdateLogDelivery
+               - logs:DeleteLogDelivery
+               - logs:ListLogDeliveries
+               - logs:PutResourcePolicy
+               - logs:DescribeResourcePolicies
+               - logs:DescribeLogGroups
+             Resource: !GetAtt HelloWorldStateMachineLogGroup.Arn
+             # Resource: "*"
+        - Statement:
+           - Effect: Allow
+             Action:
+               - xray:PutTraceSegments
+               - xray:PutTelemetryRecords
+               - xray:GetSamplingRules
+               - xray:GetSamplingTargets
+             Resource:
+               - '*'  # 少々甘め
 
   HelloWorldStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
-    DependsOn: HelloWorldStateMachine
+    # DependsOn: HelloWorldStateMachine
     Properties:
       RetentionInDays: 7
       # LogGroupName: !Sub "/aws/vendedlogs/states/${HelloWorldStateMachine.Name}-Log"
-      # AWS::StepFunctions::StateMachineだと循環参照になる
-
-  IAMRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: "/service-role/"
-      # RoleName: "StepFunctions-sam-stepfunctions1-role-28b41346"
-      AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"states.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
-      MaxSessionDuration: 3600
-      ManagedPolicyArns:
-        - !Ref IAMManagedPolicy
-        - !Ref IAMManagedPolicy2
-        - !Ref IAMManagedPolicy3
-
-  IAMManagedPolicy:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Path: "/service-role/"
-      PolicyDocument: !Sub |
-          {
-              "Version": "2012-10-17",
-              "Statement": [
-                  {
-                      "Effect": "Allow",
-                      "Action": [
-                          "lambda:InvokeFunction"
-                      ],
-                      "Resource": [
-                          "${HelloWorldFunction.Arn}:*"
-                      ]
-                  },
-                  {
-                      "Effect": "Allow",
-                      "Action": [
-                          "lambda:InvokeFunction"
-                      ],
-                      "Resource": [
-                          "${HelloWorldFunction.Arn}"
-                      ]
-                  }
-              ]
-          }
-
-  IAMManagedPolicy2:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Path: "/service-role/"
-      PolicyDocument: |
-          {
-              "Version": "2012-10-17",
-              "Statement": [
-                  {
-                      "Effect": "Allow",
-                      "Action": [
-                          "logs:CreateLogDelivery",
-                          "logs:GetLogDelivery",
-                          "logs:UpdateLogDelivery",
-                          "logs:DeleteLogDelivery",
-                          "logs:ListLogDeliveries",
-                          "logs:PutResourcePolicy",
-                          "logs:DescribeResourcePolicies",
-                          "logs:DescribeLogGroups"
-                      ],
-                      "Resource": "*"
-                  }
-              ]
-          }
-
-  IAMManagedPolicy3:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Path: "/service-role/"
-      PolicyDocument: |
-          {
-              "Version": "2012-10-17",
-              "Statement": [
-                  {
-                      "Effect": "Allow",
-                      "Action": [
-                          "xray:PutTraceSegments",
-                          "xray:PutTelemetryRecords",
-                          "xray:GetSamplingRules",
-                          "xray:GetSamplingTargets"
-                      ],
-                      "Resource": [
-                          "*"
-                      ]
-                  }
-              ]
-          }
 
 Outputs:
   HelloWorldFunction:
