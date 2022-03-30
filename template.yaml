@@ -107,12 +107,4 @@ Outputs:
     Description: "S3 bucket for Step Functions example"
     Value: !Ref SFS3Bucket
   test1:
-    Value: !Join
-      - ""
-      - - "/aws/vendedlogs/states/"
-        - !Join
-          - "-"
-          - - !Ref AWS::StackName
-            - "HelloWorldStateMachine"
-            - !Select [0, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]]
-            - "Log"
+    Value: !Join ["", ["/aws/vendedlogs/states/", !Join ["-",[!Ref AWS::StackName, "HelloWorldStateMachine", !Select [0, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]], "Log" ]]]]
