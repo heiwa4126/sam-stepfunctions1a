@@ -4,8 +4,9 @@
 に出てくるリソースをSAMで作成する。
 
 CFnの AWS::StepFunctions::StateMachine ではなく
-SAMの AWS::Serverless::StateMachine を使っている
+SAMの AWS::Serverless::StateMachine を使っている。
 
+それですっきり短くなったか、というとそうでもない。
 
 デプロイ後のテストの方法は
 上記URLを参照
