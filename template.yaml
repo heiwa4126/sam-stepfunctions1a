@@ -44,60 +44,60 @@ Resources:
 
   # SAMの AWS::Serverless::StateMachine を使う例
 
-  # HelloWorldStateMachine:
-  #   Type: AWS::Serverless::StateMachine
-  #   DependsOn: HelloWorldStateMachineLogGroup
-  #   Properties:
-  #     Definition:
-  #       Comment: A Hello World example of the Amazon States Language using an AWS Lambda function
-  #       StartAt: HelloWorld
-  #       States:
-  #         HelloWorld:
-  #           Type: Task
-  #           Resource: !GetAtt HelloWorldFunction.Arn
-  #           End: true
-  #     Type: STANDARD
-  #     Logging:
-  #       Destinations:
-  #         - CloudWatchLogsLogGroup:
-  #             LogGroupArn: !GetAtt HelloWorldStateMachineLogGroup.Arn
-  #       IncludeExecutionData: true
-  #       Level: ALL              # loggingのテスト。普通はERRORで十分
-  #       # Level: ERROR
-  #     Policies:
-  #       - LambdaInvokePolicy:
-  #           FunctionName: !Ref HelloWorldFunction
-  #       - Statement:
-  #          - Effect: Allow
-  #            Action:
-  #              - logs:CreateLogDelivery
-  #              - logs:GetLogDelivery
-  #              - logs:UpdateLogDelivery
-  #              - logs:DeleteLogDelivery
-  #              - logs:ListLogDeliveries
-  #              - logs:PutResourcePolicy
-  #              - logs:DescribeResourcePolicies
-  #              - logs:DescribeLogGroups
-  #            Resource: !GetAtt HelloWorldStateMachineLogGroup.Arn
-  #            # Resource: "*"
-  #       - Statement:  # これは本当に必要かわからない。手動で作ったstepfunctionにはあったので
-  #          - Effect: Allow
-  #            Action:
-  #              - xray:PutTraceSegments
-  #              - xray:PutTelemetryRecords
-  #              - xray:GetSamplingRules
-  #              - xray:GetSamplingTargets
-  #            Resource:
-  #              - '*'  # 少々甘め
+  HelloWorldStateMachine:
+    Type: AWS::Serverless::StateMachine
+    # DependsOn: HelloWorldStateMachineLogGroup
+    Properties:
+      Definition:
+        Comment: A Hello World example of the Amazon States Language using an AWS Lambda function
+        StartAt: HelloWorld
+        States:
+          HelloWorld:
+            Type: Task
+            Resource: !GetAtt HelloWorldFunction.Arn
+            End: true
+      Type: STANDARD
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt HelloWorldStateMachineLogGroup.Arn
+        IncludeExecutionData: true
+        Level: ALL              # loggingのテスト。普通はERRORで十分
+        # Level: ERROR
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HelloWorldFunction
+        - Statement:
+           - Effect: Allow
+             Action:
+               - logs:CreateLogDelivery
+               - logs:GetLogDelivery
+               - logs:UpdateLogDelivery
+               - logs:DeleteLogDelivery
+               - logs:ListLogDeliveries
+               - logs:PutResourcePolicy
+               - logs:DescribeResourcePolicies
+               - logs:DescribeLogGroups
+             # Resource: !GetAtt HelloWorldStateMachineLogGroup.Arn
+             Resource: "*"      # ↑を指定すると作成できない
+        - Statement:  # これは本当に必要かわからない。手動で作ったstepfunctionにはあったので
+           - Effect: Allow
+             Action:
+               - xray:PutTraceSegments
+               - xray:PutTelemetryRecords
+               - xray:GetSamplingRules
+               - xray:GetSamplingTargets
+             Resource:
+               - '*'  # 少々甘め
 
-  # HelloWorldStateMachineLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   # DependsOn: HelloWorldStateMachine
-  #   Properties:
-  #     RetentionInDays: 7
-  #     LogGroupName: !Sub "/aws/vendedlogs/states/${HelloWorldStateMachine.Name}-Log"
-  #     # サイズ制限を緩和するるため/aws/vendedlogs/の下につくる必要がある。
-  #     # 参照: https://docs.aws.amazon.com/step-functions/latest/dg/bp-cwl.html
+  HelloWorldStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Join ["", ["/aws/vendedlogs/states/", !Join ["-",[!Ref AWS::StackName, "HelloWorldStateMachine", !Select [0, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]], "Log" ]]]]
+      # サイズ制限を緩和するるため/aws/vendedlogs/の下につくる必要がある。
+      # 参照: https://docs.aws.amazon.com/step-functions/latest/dg/bp-cwl.html
+      # また循環参照になるのでHelloWorldStateMachine.Nameを参照できない
 
 Outputs:
   HelloWorldFunctionName:
@@ -106,5 +106,3 @@ Outputs:
   SFS3Bucket:
     Description: "S3 bucket for Step Functions example"
     Value: !Ref SFS3Bucket
-  test1:
-    Value: !Join ["", ["/aws/vendedlogs/states/", !Join ["-",[!Ref AWS::StackName, "HelloWorldStateMachine", !Select [0, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]], "Log" ]]]]
