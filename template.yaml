@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  sam-stepfunctions1
+  sam-stepfunctions1a
 
-  Sample SAM Template for sam-stepfunctions1
+  Sample SAM Template for sam-stepfunctions1a
   See https://docs.aws.amazon.com/step-functions/latest/dg/tutorial-creating-lambda-state-machine.html
 
 Globals:
@@ -42,11 +42,10 @@ Resources:
         IgnorePublicAcls: True
         RestrictPublicBuckets: True
 
-  # SAMの AWS::Serverless::StateMachine を使う例
+  # 以下 SAMの AWS::Serverless::StateMachine を使う例
 
   HelloWorldStateMachine:
     Type: AWS::Serverless::StateMachine
-    # DependsOn: HelloWorldStateMachineLogGroup
     Properties:
       Definition:
         Comment: A Hello World example of the Amazon States Language using an AWS Lambda function
@@ -79,8 +78,8 @@ Resources:
                - logs:DescribeResourcePolicies
                - logs:DescribeLogGroups
              # Resource: !GetAtt HelloWorldStateMachineLogGroup.Arn
-             Resource: "*"      # ↑を指定すると作成できない
-        - Statement:  # これは本当に必要かわからない。手動で作ったstepfunctionにはあったので
+             Resource: "*"      # ↑を指定すると作成できない。理由不明
+        - Statement:  # これは本当に必要かわからないインラインポリシー。手動で作ったstepfunctionにはあったので
            - Effect: Allow
              Action:
                - xray:PutTraceSegments
@@ -88,7 +87,7 @@ Resources:
                - xray:GetSamplingRules
                - xray:GetSamplingTargets
              Resource:
-               - '*'  # 少々甘め
+               - "*"  # 少々甘め
 
   HelloWorldStateMachineLogGroup:
     Type: AWS::Logs::LogGroup
@@ -100,6 +99,8 @@ Resources:
       # サイズ制限を緩和するるため/aws/vendedlogs/の下につくる必要がある。
       # 参照: https://docs.aws.amazon.com/step-functions/latest/dg/bp-cwl.html
       # また循環参照になるのでHelloWorldStateMachine.Nameを参照できなくて、先に名前をつける必要がある。
+      # (あるいはHelloWorldStateMachineの方を固定名にするか)
+      # これ AWS::Serverless::Function ではできるのはなんで?
       # ログ名に乱数をつけるのに以下の手法を使っている
       # https://stackoverflow.com/questions/57660653/how-to-create-some-random-or-unique-value-in-a-cloudformation-template/67162053
 
@@ -111,12 +112,12 @@ Outputs:
     Description: "S3 bucket for Step Functions example"
     Value: !Ref SFS3Bucket
   test1:
-    Description: "LogGroup name example 1" # たぶんこれで十分
-    Value: !Sub
-      - "/aws/vendedlogs/states/${AWS::StackName}-HelloWorldStateMachine-${v1}-Log"
-      - {v1: !Select [4, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]]}
-  test2:
-    Description: "LogGroup name example 2" # 長すぎると思う
+    Description: "LogGroup name example 1" # v1長すぎると思う
     Value: !Sub
       - "/aws/vendedlogs/states/${AWS::StackName}-HelloWorldStateMachine-${v1}-Log"
       - {v1: !Select [2, !Split [/, !Ref AWS::StackId ]]}
+  test2:
+    Description: "LogGroup name example 2" # たぶんこれで十分
+    Value: !Sub
+      - "/aws/vendedlogs/states/${AWS::StackName}-HelloWorldStateMachine-${v1}-Log"
+      - {v1: !Select [4, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]]}
