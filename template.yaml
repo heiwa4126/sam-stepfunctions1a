@@ -94,10 +94,14 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 7
-      LogGroupName: !Join ["", ["/aws/vendedlogs/states/", !Join ["-",[!Ref AWS::StackName, "HelloWorldStateMachine", !Select [0, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]], "Log" ]]]]
+      LogGroupName: !Sub
+        - "/aws/vendedlogs/states/${AWS::StackName}-HelloWorldStateMachine-${v1}-Log"
+        - {v1: !Select [2, !Split [/, !Ref AWS::StackId ]]}
       # サイズ制限を緩和するるため/aws/vendedlogs/の下につくる必要がある。
       # 参照: https://docs.aws.amazon.com/step-functions/latest/dg/bp-cwl.html
-      # また循環参照になるのでHelloWorldStateMachine.Nameを参照できない
+      # また循環参照になるのでHelloWorldStateMachine.Nameを参照できなくて、先に名前をつける必要がある。
+      # ログ名に乱数をつけるのに以下の手法を使っている
+      # https://stackoverflow.com/questions/57660653/how-to-create-some-random-or-unique-value-in-a-cloudformation-template/67162053
 
 Outputs:
   HelloWorldFunctionName:
@@ -106,3 +110,13 @@ Outputs:
   SFS3Bucket:
     Description: "S3 bucket for Step Functions example"
     Value: !Ref SFS3Bucket
+  test1:
+    Description: "LogGroup name example 1" # たぶんこれで十分
+    Value: !Sub
+      - "/aws/vendedlogs/states/${AWS::StackName}-HelloWorldStateMachine-${v1}-Log"
+      - {v1: !Select [4, !Split ["-", !Select [2, !Split [/, !Ref AWS::StackId ]]]]}
+  test2:
+    Description: "LogGroup name example 2" # 長すぎると思う
+    Value: !Sub
+      - "/aws/vendedlogs/states/${AWS::StackName}-HelloWorldStateMachine-${v1}-Log"
+      - {v1: !Select [2, !Split [/, !Ref AWS::StackId ]]}
