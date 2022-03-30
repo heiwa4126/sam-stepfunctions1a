@@ -47,14 +47,17 @@ Resources:
   HelloWorldStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
-      Definition:
-        Comment: A Hello World example of the Amazon States Language using an AWS Lambda function
-        StartAt: HelloWorld
-        States:
-          HelloWorld:
-            Type: Task
-            Resource: !GetAtt HelloWorldFunction.Arn
-            End: true
+      # Definition:
+      #   Comment: A Hello World example of the Amazon States Language using an AWS Lambda function
+      #   StartAt: HelloWorld
+      #   States:
+      #     HelloWorld:
+      #       Type: Task
+      #       Resource: !GetAtt HelloWorldFunction.Arn
+      #       End: true
+      DefinitionUri: statemachine/hello.asl.json
+      DefinitionSubstitutions:
+        HelloFunction: !GetAtt HelloWorldFunction.Arn
       Type: STANDARD
       Logging:
         Destinations:
